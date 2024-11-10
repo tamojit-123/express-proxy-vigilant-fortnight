@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Express Proxy</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Fetch Users</h1>
+        <div class="form-group">
+            <label for="query">Query:</label>
+            <input type="text" class="form-control" id="query">
+        </div>
+        <button class="btn btn-primary" id="fetchButton">Fetch Data</button>
+        <div class="mt-4" id="result"></div>
+    </div>
+    <script>
+        async function fetchDataWithRetry(url, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url);
+                    if (response.status === 429) {
+                        // If we get a 429 status code, wait for the specified delay and try again
+                        console.log(`Received 429 status, retrying in ${delay}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                    return await response.json();
+                } catch (error) {
+                    if (i === retries - 1) {
+                        throw error;
+                    }
+                    console.log(`Error fetching data, retrying in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        document.getElementById('fetchButton').addEventListener('click', async () => {
+            const query = document.getElementById('query').value;
+            const url = `/api/users?query=${query}`;
+            try {
+                const data = await fetchDataWithRetry(url);
+                document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('result').innerText = 'Error fetching data';
+            }
+        });
+    </script>
+</body>
+</html>
